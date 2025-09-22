@@ -1,3 +1,4 @@
+
 # Doggy Daycare Management Platform
 
 This project implements a comprehensive management back-end for Australian dog daycare businesses. It was designed from market research covering core operational requirements (bookings, client and pet records, invoicing with GST, packages, communications) and competitive differentiators (multi-location support, staff time tracking, inventory, client engagement, integrations).
@@ -78,3 +79,4 @@ This command must succeed before submitting changes.
 ## Next Steps
 
 To extend the project, consider adding a lightweight HTTP or GraphQL API, progressive web app client, or background workers for message delivery. The existing `DaycareSystem` acts as a service layer ready to be wrapped by whichever interface best suits the business.
+
