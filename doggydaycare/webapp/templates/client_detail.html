@@ -1,0 +1,319 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>{{ client['first_name'] }} {{ client['last_name'] }}</h1>
+    <p>{{ client['phone'] }} &middot; {{ client['email'] }}</p>
+  </div>
+  <div class="card compact">
+    <h2>Emergency contact</h2>
+    <p>{{ client['emergency_contact_name'] or 'Not provided' }}<br />{{ client['emergency_contact_phone'] or '' }}</p>
+    <p><strong>Address:</strong> {{ client['address'] or '—' }}, {{ client['suburb'] or '' }} {{ client['state'] or '' }} {{ client['postcode'] or '' }}</p>
+  </div>
+</section>
+<section class="card">
+  <h2>Pets</h2>
+  <div class="pet-grid">
+    {% for pet in pets %}
+    <article class="pet-card">
+      <header>
+        <h3>{{ pet['name'] }}</h3>
+        <p>{{ pet['breed'] or 'Breed not set' }}{% if pet['birth_date'] %} &middot; Born {{ pet['birth_date'] }}{% endif %}</p>
+      </header>
+      <dl>
+        <dt>Allergies</dt>
+        <dd>{{ pet['allergies'] or 'None recorded' }}</dd>
+        <dt>Feeding instructions</dt>
+        <dd>{{ pet['feeding_instructions'] or 'Use standard menu' }}</dd>
+        <dt>Behaviour flags</dt>
+        <dd>{{ pet['behaviour_flags'] or 'No alerts' }}</dd>
+      </dl>
+      <section>
+        <h4>Vaccinations</h4>
+        {% if pet['vaccinations'] %}
+        <ul class="list">
+          {% for record in pet['vaccinations'] %}
+          <li>{{ record['vaccine_name'] }} &ndash; expires {{ record['expiry_date'] }}</li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p>No vaccinations on file.</p>
+        {% endif %}
+        <form method="post" action="{{ url_for('add_vaccination', pet_id=pet['id']) }}" class="inline-form">
+          <input type="hidden" name="client_id" value="{{ client['id'] }}" />
+          <input name="vaccine_name" placeholder="Vaccine" required />
+          <input type="date" name="expiry_date" required />
+          <button type="submit" class="btn small">Add</button>
+        </form>
+      </section>
+      <section>
+        <h4>Notes</h4>
+        {% if pet['notes'] %}
+        <ul class="list">
+          {% for note in pet['notes'] %}
+          <li>{{ note['created_at'][:10] }}: {{ note['note'] }}</li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p>No notes yet.</p>
+        {% endif %}
+        <form method="post" action="{{ url_for('add_pet_note', pet_id=pet['id']) }}" class="inline-form">
+          <input type="hidden" name="client_id" value="{{ client['id'] }}" />
+          <input name="note" placeholder="Add note" required />
+          <button type="submit" class="btn small">Save</button>
+        </form>
+      </section>
+      <section>
+        <h4>Daily activity</h4>
+        {% if pet['activities'] %}
+        <ul class="list">
+          {% for activity in pet['activities'][:3] %}
+          <li>{{ activity['created_at'][:16] }} &ndash; {{ activity['activity_type'] }}: {{ activity['details'] }}</li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p>No activity logs yet.</p>
+        {% endif %}
+      </section>
+    </article>
+    {% endfor %}
+  </div>
+  <details class="accordion">
+    <summary>Add another pet</summary>
+    <form method="post" action="{{ url_for('add_pet', client_id=client['id']) }}" class="form-grid">
+      <div>
+        <label for="pet_name">Name</label>
+        <input id="pet_name" name="name" required />
+      </div>
+      <div>
+        <label for="pet_breed">Breed</label>
+        <input id="pet_breed" name="breed" />
+      </div>
+      <div>
+        <label for="pet_birth_date">Birth date</label>
+        <input id="pet_birth_date" type="date" name="birth_date" />
+      </div>
+      <div>
+        <label for="pet_gender">Gender</label>
+        <input id="pet_gender" name="gender" />
+      </div>
+      <div class="full">
+        <label for="medical_notes">Medical notes</label>
+        <textarea id="medical_notes" name="medical_notes" rows="2"></textarea>
+      </div>
+      <div class="full">
+        <label for="feeding_instructions">Feeding instructions</label>
+        <textarea id="feeding_instructions" name="feeding_instructions" rows="2"></textarea>
+      </div>
+      <div class="full">
+        <label for="behaviour_flags">Behaviour flags</label>
+        <textarea id="behaviour_flags" name="behaviour_flags" rows="2"></textarea>
+      </div>
+      <div class="full">
+        <label for="allergies">Allergies</label>
+        <textarea id="allergies" name="allergies" rows="2"></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn primary">Add pet</button>
+      </div>
+    </form>
+  </details>
+</section>
+<div class="grid two">
+  <section class="card">
+    <h2>Upcoming bookings</h2>
+    {% if upcoming_bookings %}
+    <ul class="list">
+      {% for booking in upcoming_bookings %}
+      <li>
+        {{ booking['start_time'][:16] }} &ndash;
+        {% for pet in booking['pets'] %}
+        <span class="tag">{{ pet['pet_name'] }}</span>
+        {% endfor %}
+        <span class="tag muted">{{ booking['status']|default('scheduled')|replace('_', ' ')|title }}</span>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No upcoming bookings.</p>
+    {% endif %}
+  </section>
+  <section class="card">
+    <h2>Recent visits</h2>
+    {% if booking_history %}
+    <ul class="list">
+      {% for booking in booking_history %}
+      <li>
+        {{ booking['start_time'][:16] }} &ndash;
+        {% for pet in booking['pets'] %}
+        <span class="tag">{{ pet['pet_name'] }}</span>
+        {% endfor %}
+        {% if booking['invoice'] %} &middot; Invoice {{ booking['invoice']['invoice_number'] }} ({{ booking['invoice']['status'] }}){% endif %}
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No booking history yet.</p>
+    {% endif %}
+  </section>
+</div>
+<div class="grid two">
+  <section class="card">
+    <h2>Book daycare</h2>
+    {% if pets %}
+    <form method="post" action="{{ url_for('create_client_booking', client_id=client['id']) }}" class="form-grid">
+      <div>
+        <label for="start_time">Drop-off</label>
+        <input id="start_time" name="start_time" type="datetime-local" required />
+      </div>
+      <div>
+        <label for="end_time">Pick-up</label>
+        <input id="end_time" name="end_time" type="datetime-local" required />
+      </div>
+      <div class="full">
+        <label for="pet_ids">Pets</label>
+        <select id="pet_ids" name="pet_ids" multiple required>
+          {% for pet in pets %}
+          <option value="{{ pet['id'] }}">{{ pet['name'] }}</option>
+          {% endfor %}
+        </select>
+        <small>Hold Ctrl (Windows) or Command (Mac) to select multiple pets.</small>
+      </div>
+      <div>
+        <label for="service_id">Add-on service</label>
+        <select id="service_id" name="service_id">
+          <option value="">None</option>
+          {% for service in services %}
+          <option value="{{ service['id'] }}">{{ service['name'] }} (${{ '%.2f'|format(service['price']) }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="service_quantity">Service quantity</label>
+        <input id="service_quantity" name="service_quantity" type="number" min="1" value="1" />
+      </div>
+      <div class="full">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" rows="2"></textarea>
+      </div>
+      <div class="checkbox">
+        <input type="checkbox" id="use_package_credit" name="use_package_credit" />
+        <label for="use_package_credit">Redeem package credit</label>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn primary">Create booking</button>
+      </div>
+    </form>
+    {% else %}
+    <p>Add a pet before creating bookings.</p>
+    {% endif %}
+  </section>
+  <section class="card">
+    <h2>Packages</h2>
+    <h3>Owned passes</h3>
+    {% if packages %}
+    <ul class="list">
+      {% for package in packages %}
+      <li>{{ package['package_name'] }} &ndash; {{ package['remaining_credits'] }} credits left (purchased {{ package['purchase_date'] }})</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No packages purchased yet.</p>
+    {% endif %}
+    <h3>Sell package</h3>
+    {% if available_packages %}
+    <form method="post" action="{{ url_for('sell_package', client_id=client['id']) }}" class="form-grid">
+      <div>
+        <label for="package_id">Package</label>
+        <select id="package_id" name="package_id" required>
+          {% for package in available_packages %}
+          <option value="{{ package['id'] }}">{{ package['name'] }} &ndash; {{ package['total_credits'] }} visits for ${{ '%.2f'|format(package['price']) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="expiry_date">Expiry date (optional)</label>
+        <input id="expiry_date" name="expiry_date" type="date" />
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn primary">Sell package</button>
+      </div>
+    </form>
+    {% else %}
+    <p>Create packages under <a href="{{ url_for('locations') }}">Locations</a> to sell passes.</p>
+    {% endif %}
+  </section>
+</div>
+<section class="card">
+  <h2>Invoices</h2>
+  {% if invoices %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Number</th>
+        <th>Date</th>
+        <th>Status</th>
+        <th>Total</th>
+        <th>Balance</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for invoice in invoices %}
+      <tr>
+        <td>{{ invoice['invoice_number'] }}</td>
+        <td>{{ invoice['issue_date'] }}</td>
+        <td>{{ invoice['status']|title }}</td>
+        <td>${{ '%.2f'|format(invoice['total']) }}</td>
+        <td>${{ '%.2f'|format(invoice['balance_due']) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No invoices for this client yet.</p>
+  {% endif %}
+</section>
+<div class="grid two">
+  <section class="card">
+    <h2>Notifications sent</h2>
+    {% if notifications %}
+    <ul class="list">
+      {% for notification in notifications %}
+      <li>{{ notification['created_at'][:16] }} &ndash; {{ notification['channel']|upper }}: {{ notification['content'] }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No automated notifications sent yet.</p>
+    {% endif %}
+  </section>
+  <section class="card">
+    <h2>Message client</h2>
+    <form method="post" action="{{ url_for('send_message', client_id=client['id']) }}" class="form-grid">
+      <div>
+        <label for="channel">Channel</label>
+        <select id="channel" name="channel">
+          <option value="email">Email</option>
+          <option value="sms">SMS</option>
+        </select>
+      </div>
+      <div class="full">
+        <label for="content">Message</label>
+        <textarea id="content" name="content" rows="4" required></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn primary">Send</button>
+      </div>
+    </form>
+    <h3>Conversation history</h3>
+    {% if messages %}
+    <ul class="list">
+      {% for message in messages %}
+      <li>{{ message['created_at'][:16] }} &ndash; {{ message['direction']|title }} {{ message['channel']|upper }}: {{ message['content'] }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No messages recorded.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

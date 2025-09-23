@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>Invoices</h1>
+    <p>Track balances, record payments and keep GST reporting tidy.</p>
+  </div>
+</section>
+<section class="card">
+  {% if invoices %}
+  <table class="table">
+    <thead>
+      <tr>
+        <th>Invoice</th>
+        <th>Client</th>
+        <th>Issue date</th>
+        <th>Status</th>
+        <th>Total</th>
+        <th>Balance</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for invoice in invoices %}
+      <tr id="invoice-{{ invoice['id'] }}">
+        <td>{{ invoice['invoice_number'] }}</td>
+        <td>
+          {% set client = clients.get(invoice['client_id']) %}
+          {% if client %}
+          {{ client['first_name'] }} {{ client['last_name'] }}
+          {% else %}
+          Client #{{ invoice['client_id'] }}
+          {% endif %}
+        </td>
+        <td>{{ invoice['issue_date'] }}</td>
+        <td>{{ invoice['status']|title }}</td>
+        <td>${{ '%.2f'|format(invoice['total']) }}</td>
+        <td>${{ '%.2f'|format(invoice['balance_due']) }}</td>
+        <td>
+          {% if invoice['balance_due'] > 0 %}
+          <form method="post" action="{{ url_for('record_payment', invoice_id=invoice['id']) }}" class="inline-form">
+            <input type="number" name="amount" step="0.01" max="{{ invoice['balance_due'] }}" value="{{ '%.2f'|format(invoice['balance_due']) }}" />
+            <select name="method">
+              <option value="cash">Cash</option>
+              <option value="card">Card</option>
+              <option value="online">Online</option>
+            </select>
+            <input name="reference" placeholder="Reference" />
+            <button type="submit" class="btn small">Record payment</button>
+          </form>
+          {% else %}
+          <span class="tag success">Paid</span>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p>No invoices generated yet.</p>
+  {% endif %}
+</section>
+{% endblock %}
