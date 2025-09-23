@@ -250,6 +250,7 @@ class DaycareSystemTestCase(unittest.TestCase):
         )
         self.assertIn(self.today.isoformat(), calendar["bookings"])
 
+ codex/create-dog-daycare-management-system-yeinmr
     def test_directory_helpers(self) -> None:
         start = dt.datetime.combine(self.today, dt.time(9, 0)).isoformat()
         end = dt.datetime.combine(self.today, dt.time(17, 0)).isoformat()
@@ -319,6 +320,8 @@ class DaycareSystemTestCase(unittest.TestCase):
         self.assertEqual(snapshot["location"]["id"], self.location["id"])
         self.assertIn("bookings", snapshot)
 
+
+ main
     def test_vaccination_required(self) -> None:
         past_expiry = (self.today - dt.timedelta(days=1)).isoformat()
         pet = self.system.add_pet(client_id=self.client["id"], name="Nova")

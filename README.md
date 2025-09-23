@@ -1,8 +1,17 @@
+ codex/create-dog-daycare-management-system-yeinmr
 # Doggy Daycare Management Platform
 
 This project implements a comprehensive management platform for Australian dog daycare businesses. It combines a feature-rich Python service layer with a responsive Flask web application so owners and staff can manage locations, clients, bookings, billing, messaging, and reporting from one place. The system was designed from market research covering core operational requirements (bookings, client and pet records, invoicing with GST, packages, communications) and competitive differentiators (multi-location support, staff time tracking, inventory, client engagement, integrations).
 
 The backend is delivered as a dependency-light Python module backed by SQLite, making it portable and easy to run in constrained environments. The `DaycareSystem` façade in `doggydaycare/daycare/system.py` exposes high-level workflows that cover the lifecycle of a daycare visit, from online booking and waitlisting, to check-in/out, billing, communications, and reporting. The new Flask front-end in `doggydaycare/webapp` wraps these workflows with an intuitive UI optimised for desktops, tablets, and mobile devices.
+
+
+# Doggy Daycare Management Platform
+
+This project implements a comprehensive management back-end for Australian dog daycare businesses. It was designed from market research covering core operational requirements (bookings, client and pet records, invoicing with GST, packages, communications) and competitive differentiators (multi-location support, staff time tracking, inventory, client engagement, integrations).
+
+The platform is delivered as a Python module backed by SQLite with no third-party dependencies, making it portable and easy to run in constrained environments. The `DaycareSystem` façade in `doggydaycare/daycare/system.py` exposes high-level workflows that cover the lifecycle of a daycare visit, from online booking and waitlisting, to check-in/out, billing, communications, and reporting.
+ main
 
 ## Key Capabilities
 
@@ -19,6 +28,7 @@ The backend is delivered as a dependency-light Python module backed by SQLite, m
 
 ```
 README.md
+ codex/create-dog-daycare-management-system-yeinmr
 app.py                       # Flask entry point
 requirements.txt             # Web application dependencies
 doggydaycare/
@@ -57,11 +67,30 @@ doggydaycare/
 
 1. Run the automated tests to verify the backend functions as expected:
 
+ doggydaycare/
+ ├── __init__.py
+ ├── daycare/
+ │   ├── __init__.py
+ │   ├── database.py      # SQLite schema and connection helpers
+ │   └── system.py        # High-level orchestration class
+ └── tests/
+     └── test_daycare_system.py  # End-to-end coverage of major workflows
+```
+
+## Getting Started
+
+1. Run the automated tests to verify the system functions as expected:
+ main
+
    ```bash
    python -m unittest discover doggydaycare/tests
    ```
 
+ codex/create-dog-daycare-management-system-yeinmr
 2. Programmatically access the service layer via the `DaycareSystem` class in your own scripts or services:
+
+2. Import and use the `DaycareSystem` class in your own scripts or services:
+ main
 
    ```python
    from doggydaycare.daycare.system import DaycareSystem
@@ -84,8 +113,13 @@ doggydaycare/
 
 ## Design Notes
 
+ codex/create-dog-daycare-management-system-yeinmr
 - **Service layer first:** The orchestration logic remains in `DaycareSystem`, so other interfaces (mobile apps, APIs, integrations) can reuse the same validated workflows.
 - **Lightweight web stack:** The Flask UI only depends on the `Flask` package and ships with responsive CSS—no JavaScript build tools required.
+
+- **No external dependencies:** All functionality relies on Python’s standard library to remain deployable without internet access or package managers.
+- **Extensible schema:** The SQLite schema models locations, users, pets, bookings, services, packages, invoices, notifications, employees, inventory, and digital documents, enabling future UI layers or mobile apps to build on the same data model.
+ main
 - **Australian context:** GST is calculated at 10%, invoices capture local address fields (suburb, postcode), and exports target Xero/BAS workflows.
 - **Scalability:** Multi-location support, recurring bookings, and structured metadata columns allow the system to grow towards franchise operations or integrate with third-party services.
 
@@ -101,7 +135,12 @@ This command must succeed before submitting changes.
 
 ## Next Steps
 
+ codex/create-dog-daycare-management-system-yeinmr
 - Connect the payment workflow to live gateways such as Stripe, Tyro, or Square for seamless online and in-store transactions.
 - Integrate Xero (or MYOB) via their APIs to sync invoices, payments, and BAS data automatically.
 - Expand the reporting suite with visual dashboards (occupancy heatmaps, revenue trends) and CSV exports directly from the UI.
 - Package the front-end as a progressive web app (PWA) for offline-ready check-in kiosks and native-like mobile usage.
+
+To extend the project, consider adding a lightweight HTTP or GraphQL API, progressive web app client, or background workers for message delivery. The existing `DaycareSystem` acts as a service layer ready to be wrapped by whichever interface best suits the business.
+
+ main

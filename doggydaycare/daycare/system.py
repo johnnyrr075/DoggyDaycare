@@ -103,6 +103,7 @@ class DaycareSystem:
             raise AuthorizationError("Invalid credentials")
         return {"user_id": row["id"], "api_key": row["api_key"], "role": row["role"]}
 
+ codex/create-dog-daycare-management-system-yeinmr
     def list_users(self, *, location_id: int | None = None) -> list[dict]:
         """Return active users, optionally filtered by location."""
 
@@ -116,6 +117,8 @@ class DaycareSystem:
             params,
         ).fetchall()
 
+
+ main
     # ------------------------------------------------------------------
     # Locations & clients
     # ------------------------------------------------------------------
@@ -164,6 +167,7 @@ class DaycareSystem:
             raise ValidationError("Location not found")
         return row
 
+ codex/create-dog-daycare-management-system-yeinmr
     def list_locations(self) -> list[dict]:
         """Return all locations ordered by name."""
 
@@ -171,6 +175,8 @@ class DaycareSystem:
             "SELECT * FROM locations ORDER BY name"
         ).fetchall()
 
+
+ main
     def register_client(
         self,
         *,
@@ -220,6 +226,7 @@ class DaycareSystem:
             raise ValidationError("Client not found")
         return row
 
+ codex/create-dog-daycare-management-system-yeinmr
     def list_clients(self) -> list[dict]:
         """Return all clients ordered alphabetically."""
 
@@ -233,6 +240,8 @@ class DaycareSystem:
             """
         ).fetchall()
 
+
+ main
     # ------------------------------------------------------------------
     # Pets & health records
     # ------------------------------------------------------------------
@@ -282,6 +291,7 @@ class DaycareSystem:
             raise ValidationError("Pet not found")
         return row
 
+ codex/create-dog-daycare-management-system-yeinmr
     def list_pets(self, *, client_id: int | None = None, include_archived: bool = False) -> list[dict]:
         """Return pets, optionally filtered by client."""
 
@@ -319,6 +329,8 @@ class DaycareSystem:
             (pet_id,),
         ).fetchall()
 
+
+ main
     def record_vaccination(
         self,
         *,
@@ -365,6 +377,7 @@ class DaycareSystem:
             (pet_id, note, flag_type, severity, created_by),
         )
         self.conn.commit()
+ codex/create-dog-daycare-management-system-yeinmr
         return self.conn.execute(
             "SELECT * FROM pet_notes WHERE id = ?", (cur.lastrowid,)
         ).fetchone()
@@ -383,6 +396,9 @@ class DaycareSystem:
             """,
             (pet_id,),
         ).fetchall()
+
+        return self.conn.execute("SELECT * FROM pet_notes WHERE id = ?", (cur.lastrowid,)).fetchone()
+ main
 
     # ------------------------------------------------------------------
     # Services, packages, inventory
@@ -426,6 +442,7 @@ class DaycareSystem:
             raise ValidationError("Service not found")
         return row
 
+ codex/create-dog-daycare-management-system-yeinmr
     def list_services(self, *, location_id: int | None = None) -> list[dict]:
         """Return services available for a location."""
 
@@ -439,6 +456,8 @@ class DaycareSystem:
             params,
         ).fetchall()
 
+
+ main
     def create_daycare_package(
         self,
         *,
@@ -480,6 +499,7 @@ class DaycareSystem:
             raise ValidationError("Package not found")
         return row
 
+ codex/create-dog-daycare-management-system-yeinmr
     def list_packages(self, *, location_id: int | None = None) -> list[dict]:
         """Return daycare packages, optionally filtered by location."""
 
@@ -493,6 +513,8 @@ class DaycareSystem:
             params,
         ).fetchall()
 
+
+ main
     def sell_package(
         self,
         *,
@@ -528,6 +550,7 @@ class DaycareSystem:
             raise ValidationError("Client package not found")
         return row
 
+ codex/create-dog-daycare-management-system-yeinmr
     def list_client_packages(self, *, client_id: int) -> list[dict]:
         """Return packages owned by a client."""
 
@@ -544,6 +567,8 @@ class DaycareSystem:
             (client_id,),
         ).fetchall()
 
+
+ main
     def adjust_client_package(self, client_package_id: int, delta: int) -> dict:
         package = self.get_client_package(client_package_id)
         new_balance = package["remaining_credits"] + delta
@@ -902,6 +927,7 @@ class DaycareSystem:
         row = self.conn.execute("SELECT * FROM bookings WHERE id = ?", (booking_id,)).fetchone()
         if not row:
             raise ValidationError("Booking not found")
+ codex/create-dog-daycare-management-system-yeinmr
         client = self.get_client(row["client_id"])
         pets = self.conn.execute(
             """
@@ -942,6 +968,16 @@ class DaycareSystem:
         row["client"] = client
         row["invoice"] = invoice
         row["checkins"] = checkins
+
+        pets = self.conn.execute(
+            "SELECT * FROM booking_pets WHERE booking_id = ?", (booking_id,)
+        ).fetchall()
+        services = self.conn.execute(
+            "SELECT * FROM booking_services WHERE booking_id = ?", (booking_id,)
+        ).fetchall()
+        row["pets"] = pets
+        row["services"] = services
+ main
         return row
 
     def list_bookings(self, *, location_id: int, date: str) -> list[dict]:
@@ -958,6 +994,7 @@ class DaycareSystem:
         ).fetchall()
         return [self.get_booking(row["id"]) for row in rows]
 
+ codex/create-dog-daycare-management-system-yeinmr
     def location_dashboard(self, *, location_id: int, date: str | None = None) -> dict:
         """Return a snapshot summary for the dashboard view."""
 
@@ -1045,6 +1082,8 @@ class DaycareSystem:
         ).fetchall()
         return [self.get_booking(row["id"]) for row in rows]
 
+
+ main
     def check_in_pet(
         self,
         *,
@@ -1168,6 +1207,7 @@ class DaycareSystem:
             "SELECT * FROM pet_activity_logs WHERE id = ?", (cur.lastrowid,)
         ).fetchone()
 
+ codex/create-dog-daycare-management-system-yeinmr
     def list_activity_logs(self, *, pet_id: int) -> list[dict]:
         """Return activity entries for a pet."""
 
@@ -1183,6 +1223,8 @@ class DaycareSystem:
             (pet_id,),
         ).fetchall()
 
+
+ main
     # ------------------------------------------------------------------
     # Billing
     # ------------------------------------------------------------------
@@ -1202,6 +1244,7 @@ class DaycareSystem:
         row["payments"] = payments
         return row
 
+ codex/create-dog-daycare-management-system-yeinmr
     def list_invoices(
         self,
         *,
@@ -1233,6 +1276,8 @@ class DaycareSystem:
         )
         return self.conn.execute(query, params).fetchall()
 
+
+ main
     def record_payment(
         self,
         *,
@@ -1288,6 +1333,7 @@ class DaycareSystem:
             "SELECT * FROM notifications WHERE id = ?", (cur.lastrowid,)
         ).fetchone()
 
+ codex/create-dog-daycare-management-system-yeinmr
     def list_notifications(self, *, client_id: int) -> list[dict]:
         """Return notifications previously sent to a client."""
 
@@ -1301,6 +1347,8 @@ class DaycareSystem:
             (client_id,),
         ).fetchall()
 
+
+ main
     def log_message(
         self,
         *,
@@ -1319,6 +1367,7 @@ class DaycareSystem:
             (client_id, direction, channel, content, staff_user_id, related_booking_id),
         )
         self.conn.commit()
+ codex/create-dog-daycare-management-system-yeinmr
         return self.conn.execute(
             "SELECT * FROM messages WHERE id = ?", (cur.lastrowid,)
         ).fetchone()
@@ -1337,6 +1386,9 @@ class DaycareSystem:
             """,
             (client_id,),
         ).fetchall()
+
+        return self.conn.execute("SELECT * FROM messages WHERE id = ?", (cur.lastrowid,)).fetchone()
+ main
 
     def create_document(
         self,
