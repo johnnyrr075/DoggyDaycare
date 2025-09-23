@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="card">
+  <h1>Welcome to Doggy Daycare Manager</h1>
+  <p>To get started, add your first location. Once saved you will be able to register clients, pets and begin taking bookings.</p>
+  <form method="post" action="{{ url_for('locations') }}" class="form-grid">
+    <div>
+      <label for="name">Location name</label>
+      <input id="name" name="name" required />
+    </div>
+    <div>
+      <label for="capacity">Daily capacity</label>
+      <input id="capacity" name="capacity" type="number" min="0" required />
+    </div>
+    <div>
+      <label for="base_daycare_rate">Base daycare rate (AUD)</label>
+      <input id="base_daycare_rate" name="base_daycare_rate" type="number" step="0.01" required />
+    </div>
+    <div>
+      <label for="second_pet_discount">Second pet discount (%)</label>
+      <input id="second_pet_discount" name="second_pet_discount" type="number" step="0.1" />
+    </div>
+    <div class="form-actions">
+      <button type="submit" class="btn primary">Create location</button>
+    </div>
+  </form>
+</section>
+{% endblock %}

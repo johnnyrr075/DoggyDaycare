@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>Locations</h1>
+    <p>Manage capacity, pricing and contact details for each daycare site.</p>
+  </div>
+</section>
+<div class="grid two">
+  <section class="card">
+    <h2>Add a new location</h2>
+    <form method="post" class="form-grid">
+      <div>
+        <label for="name">Name</label>
+        <input id="name" name="name" required />
+      </div>
+      <div>
+        <label for="capacity">Daily capacity</label>
+        <input id="capacity" name="capacity" type="number" min="0" required />
+      </div>
+      <div>
+        <label for="base_daycare_rate">Base daycare rate (AUD)</label>
+        <input id="base_daycare_rate" name="base_daycare_rate" type="number" step="0.01" required />
+      </div>
+      <div>
+        <label for="second_pet_discount">Second pet discount (%)</label>
+        <input id="second_pet_discount" name="second_pet_discount" type="number" step="0.1" />
+      </div>
+      <div>
+        <label for="timezone">Timezone</label>
+        <input id="timezone" name="timezone" value="Australia/Sydney" />
+      </div>
+      <div>
+        <label for="address">Street address</label>
+        <input id="address" name="address" />
+      </div>
+      <div>
+        <label for="suburb">Suburb</label>
+        <input id="suburb" name="suburb" />
+      </div>
+      <div>
+        <label for="state">State</label>
+        <input id="state" name="state" />
+      </div>
+      <div>
+        <label for="postcode">Postcode</label>
+        <input id="postcode" name="postcode" />
+      </div>
+      <div class="checkbox">
+        <input type="checkbox" id="gst_registered" name="gst_registered" checked />
+        <label for="gst_registered">GST registered</label>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn primary">Save location</button>
+      </div>
+    </form>
+  </section>
+  <section class="card">
+    <h2>Existing locations</h2>
+    {% if locations %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Capacity</th>
+          <th>Base rate</th>
+          <th>Second pet discount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for location in locations %}
+        <tr>
+          <td>{{ location.name }}</td>
+          <td>{{ location.capacity }}</td>
+          <td>${{ '%.2f'|format(location.base_daycare_rate) }}</td>
+          <td>{{ location.second_pet_discount or 0 }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No locations yet. Add your first location to begin.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

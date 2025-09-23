@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>Bookings</h1>
+    <p>Coordinate arrivals, add services and keep capacity under control.</p>
+  </div>
+  <form method="get" class="inline-form">
+    <label for="date">Date</label>
+    <input id="date" type="date" name="date" value="{{ date }}" onchange="this.form.submit()" />
+  </form>
+</section>
+<div class="grid two">
+  <section class="card">
+    <h2>Schedule for {{ date }}</h2>
+    {% if bookings %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Client</th>
+          <th>Pets</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for booking in bookings %}
+        <tr id="booking-{{ booking['id'] }}">
+          <td>{{ booking['start_time'][11:16] }} - {{ booking['end_time'][11:16] }}</td>
+          <td><a href="{{ url_for('client_detail', client_id=booking['client']['id']) }}">{{ booking['client']['first_name'] }} {{ booking['client']['last_name'] }}</a></td>
+          <td>
+            {% for pet in booking['pets'] %}
+            <span class="tag">{{ pet['pet_name'] }}</span>
+            {% endfor %}
+          </td>
+          <td>{{ booking['status']|default('scheduled')|replace('_', ' ')|title }}</td>
+          <td>
+            {% for pet in booking['pets'] %}
+            <form method="post" action="{{ url_for('checkin', booking_id=booking['id']) }}" class="inline-form">
+              <input type="hidden" name="pet_id" value="{{ pet['pet_id'] }}" />
+              <button type="submit" class="btn small">Check-in {{ pet['pet_name'] }}</button>
+            </form>
+            {% endfor %}
+          </td>
+        </tr>
+        {% if booking['checkins'] %}
+        <tr class="sub-row">
+          <td colspan="5">
+            <strong>Check-ins:</strong>
+            <ul class="list inline">
+              {% for record in booking['checkins'] %}
+              <li>{{ record['pet_name'] }} in {{ record['check_in_time'][11:16] }}{% if not record['check_out_time'] %}
+                <form method="post" action="{{ url_for('checkout', booking_id=booking['id']) }}" class="inline-form">
+                  <input type="hidden" name="pet_id" value="{{ record['pet_id'] }}" />
+                  <button type="submit" class="btn small">Check out</button>
+                </form>
+              {% else %} out {{ record['check_out_time'][11:16] }}{% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+          </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No bookings scheduled for this date.</p>
+    {% endif %}
+  </section>
+  <section class="card">
+    <h2>Waitlist</h2>
+    {% if waitlist %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Client</th>
+          <th>Pet</th>
+          <th>Requested</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in waitlist %}
+        <tr>
+          <td>{{ entry.client_name }}</td>
+          <td>{{ entry.pet_name }}</td>
+          <td>{{ entry.requested_start[11:16] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No one is on the waitlist for this day.</p>
+    {% endif %}
+    <h2>Create booking</h2>
+    <form method="post" action="{{ url_for('create_booking_route') }}" class="form-grid">
+      <div>
+        <label for="client_id">Client</label>
+        <select id="client_id" name="client_id" required>
+          {% for client in clients %}
+          <option value="{{ client['id'] }}">{{ client['first_name'] }} {{ client['last_name'] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="start_time">Drop-off</label>
+        <input id="start_time" name="start_time" type="datetime-local" required />
+      </div>
+      <div>
+        <label for="end_time">Pick-up</label>
+        <input id="end_time" name="end_time" type="datetime-local" required />
+      </div>
+      <div class="full">
+        <label for="pet_ids">Pets</label>
+        <select id="pet_ids" name="pet_ids" multiple required>
+          {% for pet in pets %}
+          <option value="{{ pet['id'] }}">{{ pet['owner_name'] }} &ndash; {{ pet['name'] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="service_id">Add-on service</label>
+        <select id="service_id" name="service_id">
+          <option value="">None</option>
+          {% for service in services %}
+          <option value="{{ service['id'] }}">{{ service['name'] }} (${{ '%.2f'|format(service['price']) }})</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label for="service_quantity">Service quantity</label>
+        <input id="service_quantity" name="service_quantity" type="number" min="1" value="1" />
+      </div>
+      <div class="checkbox">
+        <input type="checkbox" id="use_package_credit" name="use_package_credit" />
+        <label for="use_package_credit">Redeem package credit</label>
+      </div>
+      <div class="full">
+        <label for="notes">Notes</label>
+        <textarea id="notes" name="notes" rows="2"></textarea>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn primary">Create booking</button>
+      </div>
+    </form>
+  </section>
+</div>
+{% endblock %}

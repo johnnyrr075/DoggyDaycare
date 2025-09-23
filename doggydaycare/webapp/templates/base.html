@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Doggy Daycare Manager</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-icon">🐾</span>
+        <span class="brand-title">Doggy Daycare Manager</span>
+      </div>
+      {% if locations %}
+      <form method="post" action="{{ url_for('select_location') }}" class="location-picker">
+        <label for="location_id">Location</label>
+        <select id="location_id" name="location_id" onchange="this.form.submit()">
+          {% for location in locations %}
+          <option value="{{ location.id }}" {% if active_location and location.id == active_location.id %}selected{% endif %}>
+            {{ location.name }}
+          </option>
+          {% endfor %}
+        </select>
+      </form>
+      {% endif %}
+    </header>
+    <nav class="main-nav">
+      <a href="{{ url_for('dashboard') }}" class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}">Dashboard</a>
+      <a href="{{ url_for('clients') }}" class="nav-link {% if request.endpoint in ['clients', 'client_detail'] %}active{% endif %}">Clients &amp; Pets</a>
+      <a href="{{ url_for('bookings') }}" class="nav-link {% if request.endpoint == 'bookings' %}active{% endif %}">Bookings</a>
+      <a href="{{ url_for('invoices') }}" class="nav-link {% if request.endpoint == 'invoices' %}active{% endif %}">Invoices</a>
+      <a href="{{ url_for('locations') }}" class="nav-link {% if request.endpoint == 'locations' %}active{% endif %}">Locations</a>
+    </nav>
+    <main class="content">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+      <ul class="flash-messages">
+        {% for category, message in messages %}
+        <li class="flash {{ category }}">{{ message }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+      {% endwith %}
+      {% block content %}{% endblock %}
+    </main>
+    <footer class="footer">
+      <p>&copy; {{ current_year|default(2025) }} Doggy Daycare Manager. Built for Australian pet care businesses.</p>
+    </footer>
+  </body>
+</html>

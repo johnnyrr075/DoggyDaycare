@@ -250,6 +250,78 @@ class DaycareSystemTestCase(unittest.TestCase):
         )
         self.assertIn(self.today.isoformat(), calendar["bookings"])
 
+ codex/create-dog-daycare-management-system-yeinmr
+    def test_directory_helpers(self) -> None:
+        start = dt.datetime.combine(self.today, dt.time(9, 0)).isoformat()
+        end = dt.datetime.combine(self.today, dt.time(17, 0)).isoformat()
+        booking = self.system.create_booking(
+            location_id=self.location["id"],
+            client_id=self.client["id"],
+            start_time=start,
+            end_time=end,
+            pet_ids=[self.pet_a["id"]],
+        )
+        self.system.add_pet_note(
+            pet_id=self.pet_a["id"], note="Prefers outdoor play", flag_type="behaviour"
+        )
+        self.system.log_activity(
+            pet_id=self.pet_a["id"],
+            activity_type="Walk",
+            details="30 minute walk",
+            booking_id=booking["id"],
+        )
+        self.system.send_notification(
+            client_id=self.client["id"],
+            channel="email",
+            template_code="reminder",
+            content="See you soon!",
+        )
+        self.system.log_message(
+            client_id=self.client["id"],
+            direction="outbound",
+            channel="email",
+            content="Thanks for booking",
+        )
+
+        locations = self.system.list_locations()
+        self.assertTrue(any(loc["name"] == "Sydney CBD" for loc in locations))
+        clients = self.system.list_clients()
+        self.assertTrue(any(row["first_name"] == "Jordan" for row in clients))
+        pets = self.system.list_pets(client_id=self.client["id"])
+        self.assertGreaterEqual(len(pets), 3)
+        vaccinations = self.system.list_vaccinations(pet_id=self.pet_a["id"])
+        self.assertTrue(vaccinations)
+        notes = self.system.list_pet_notes(pet_id=self.pet_a["id"])
+        self.assertTrue(notes)
+        activities = self.system.list_activity_logs(pet_id=self.pet_a["id"])
+        self.assertTrue(activities)
+        services = self.system.list_services(location_id=self.location["id"])
+        self.assertTrue(services)
+        packages = self.system.list_packages(location_id=self.location["id"])
+        self.assertTrue(packages)
+        client_packages = self.system.list_client_packages(client_id=self.client["id"])
+        self.assertTrue(client_packages)
+        bookings = self.system.list_bookings_for_client(
+            client_id=self.client["id"], upcoming_only=False
+        )
+        self.assertTrue(any(bk["id"] == booking["id"] for bk in bookings))
+        invoices = self.system.list_invoices(client_id=self.client["id"])
+        self.assertTrue(invoices)
+        notifications = self.system.list_notifications(client_id=self.client["id"])
+        self.assertTrue(notifications)
+        messages = self.system.list_messages(client_id=self.client["id"])
+        self.assertTrue(messages)
+        users = self.system.list_users(location_id=self.location["id"])
+        self.assertTrue(any(user["id"] == self.manager["id"] for user in users))
+
+        snapshot = self.system.location_dashboard(
+            location_id=self.location["id"], date=self.today.isoformat()
+        )
+        self.assertEqual(snapshot["location"]["id"], self.location["id"])
+        self.assertIn("bookings", snapshot)
+
+
+ main
     def test_vaccination_required(self) -> None:
         past_expiry = (self.today - dt.timedelta(days=1)).isoformat()
         pet = self.system.add_pet(client_id=self.client["id"], name="Nova")

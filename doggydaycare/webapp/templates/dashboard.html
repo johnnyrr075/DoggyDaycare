@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+{% block content %}
+<section class="page-header">
+  <div>
+    <h1>Today at {{ snapshot.location.name }}</h1>
+    <p>{{ snapshot.date }} &middot; Capacity {{ snapshot.capacity }} dogs</p>
+  </div>
+</section>
+<div class="grid three">
+  <div class="metric-card">
+    <span class="metric-label">Dogs booked today</span>
+    <span class="metric-value">{{ snapshot.occupancy }}</span>
+    <span class="metric-detail">{{ snapshot.available }} spots remaining</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Waitlist requests</span>
+    <span class="metric-value">{{ snapshot.waitlist|length }}</span>
+    <span class="metric-detail">Manage overflow and contact families</span>
+  </div>
+  <div class="metric-card">
+    <span class="metric-label">Outstanding balance</span>
+    <span class="metric-value">${{ '%.2f'|format(snapshot.outstanding_balance) }}</span>
+    <span class="metric-detail">Across unpaid invoices</span>
+  </div>
+</div>
+<div class="grid two">
+  <section class="card">
+    <div class="card-header">
+      <h2>Today's bookings</h2>
+      <a class="btn secondary" href="{{ url_for('bookings', date=snapshot.date) }}">Open schedule</a>
+    </div>
+    {% if snapshot.bookings %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Client</th>
+          <th>Pets</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for booking in snapshot.bookings %}
+        <tr>
+          <td>{{ booking.start_time[11:16] }} - {{ booking.end_time[11:16] }}</td>
+          <td><a href="{{ url_for('client_detail', client_id=booking.client['id']) }}">{{ booking.client['first_name'] }} {{ booking.client['last_name'] }}</a></td>
+          <td>
+            {% for pet in booking.pets %}
+            <span class="tag">{{ pet['pet_name'] }}</span>
+            {% endfor %}
+          </td>
+          <td>{{ booking.status|default('scheduled')|replace('_', ' ')|title }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No bookings scheduled today.</p>
+    {% endif %}
+  </section>
+  <section class="card">
+    <h2>Waitlist</h2>
+    {% if snapshot.waitlist %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Client</th>
+          <th>Pet</th>
+          <th>Requested</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for entry in snapshot.waitlist %}
+        <tr>
+          <td>{{ entry.client_name }}</td>
+          <td>{{ entry.pet_name }}</td>
+          <td>{{ entry.requested_start[11:16] }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No one is waiting for a spot today.</p>
+    {% endif %}
+  </section>
+</div>
+<div class="grid two">
+  <section class="card">
+    <h2>Outstanding invoices</h2>
+    {% if open_invoices %}
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Invoice</th>
+          <th>Client</th>
+          <th>Due</th>
+          <th>Balance</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for invoice in open_invoices %}
+        <tr>
+          <td><a href="{{ url_for('invoices') }}#invoice-{{ invoice.id }}">{{ invoice.invoice_number }}</a></td>
+          <td>
+            {% set client = clients_by_id.get(invoice.client_id) %}
+            {% if client %}
+            {{ client['first_name'] }} {{ client['last_name'] }}
+            {% else %}
+            Client #{{ invoice.client_id }}
+            {% endif %}
+          </td>
+          <td>{{ invoice.due_date or invoice.issue_date }}</td>
+          <td>${{ '%.2f'|format(invoice.balance_due) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>All invoices are paid. Great work!</p>
+    {% endif %}
+  </section>
+  <section class="card">
+    <h2>Team &amp; recent activity</h2>
+    <h3>Staff roster</h3>
+    {% if staff %}
+    <ul class="list">
+      {% for member in staff %}
+      <li>{{ member.name or member.email }} &middot; {{ member.role|title }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No staff accounts yet.</p>
+    {% endif %}
+    <h3>Messages this week</h3>
+    {% if snapshot.recent_messages %}
+    <ul class="list">
+      {% for message in snapshot.recent_messages %}
+      <li><strong>{{ message.client_name }}</strong>: {{ message.content }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No messages logged in the last 7 days.</p>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

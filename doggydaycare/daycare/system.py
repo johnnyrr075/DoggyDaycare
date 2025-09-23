@@ -103,6 +103,22 @@ class DaycareSystem:
             raise AuthorizationError("Invalid credentials")
         return {"user_id": row["id"], "api_key": row["api_key"], "role": row["role"]}
 
+ codex/create-dog-daycare-management-system-yeinmr
+    def list_users(self, *, location_id: int | None = None) -> list[dict]:
+        """Return active users, optionally filtered by location."""
+
+        params: list[Any] = []
+        where = " WHERE is_active = 1"
+        if location_id is not None:
+            where += " AND (location_id = ? OR location_id IS NULL)"
+            params.append(location_id)
+        return self.conn.execute(
+            "SELECT * FROM users" + where + " ORDER BY role, name",
+            params,
+        ).fetchall()
+
+
+ main
     # ------------------------------------------------------------------
     # Locations & clients
     # ------------------------------------------------------------------
@@ -151,6 +167,16 @@ class DaycareSystem:
             raise ValidationError("Location not found")
         return row
 
+ codex/create-dog-daycare-management-system-yeinmr
+    def list_locations(self) -> list[dict]:
+        """Return all locations ordered by name."""
+
+        return self.conn.execute(
+            "SELECT * FROM locations ORDER BY name"
+        ).fetchall()
+
+
+ main
     def register_client(
         self,
         *,
@@ -200,6 +226,22 @@ class DaycareSystem:
             raise ValidationError("Client not found")
         return row
 
+ codex/create-dog-daycare-management-system-yeinmr
+    def list_clients(self) -> list[dict]:
+        """Return all clients ordered alphabetically."""
+
+        return self.conn.execute(
+            """
+            SELECT clients.*,
+                   COALESCE(users.email, clients.email) AS login_email
+            FROM clients
+            LEFT JOIN users ON users.id = clients.user_id
+            ORDER BY last_name, first_name
+            """
+        ).fetchall()
+
+
+ main
     # ------------------------------------------------------------------
     # Pets & health records
     # ------------------------------------------------------------------
@@ -249,6 +291,46 @@ class DaycareSystem:
             raise ValidationError("Pet not found")
         return row
 
+ codex/create-dog-daycare-management-system-yeinmr
+    def list_pets(self, *, client_id: int | None = None, include_archived: bool = False) -> list[dict]:
+        """Return pets, optionally filtered by client."""
+
+        conditions: list[str] = []
+        params: list[Any] = []
+        if client_id is not None:
+            conditions.append("pets.client_id = ?")
+            params.append(client_id)
+        if not include_archived:
+            conditions.append("pets.archived = 0")
+        where_clause = ""
+        if conditions:
+            where_clause = " WHERE " + " AND ".join(conditions)
+        query = (
+            """
+            SELECT pets.*, clients.first_name || ' ' || clients.last_name AS owner_name
+            FROM pets
+            JOIN clients ON clients.id = pets.client_id
+            {where}
+            ORDER BY pets.name
+            """.format(where=where_clause)
+        )
+        return self.conn.execute(query, params).fetchall()
+
+    def list_vaccinations(self, *, pet_id: int) -> list[dict]:
+        """Return vaccination records for a pet."""
+
+        self.get_pet(pet_id)
+        return self.conn.execute(
+            """
+            SELECT * FROM vaccination_records
+            WHERE pet_id = ?
+            ORDER BY expiry_date DESC
+            """,
+            (pet_id,),
+        ).fetchall()
+
+
+ main
     def record_vaccination(
         self,
         *,
@@ -295,7 +377,28 @@ class DaycareSystem:
             (pet_id, note, flag_type, severity, created_by),
         )
         self.conn.commit()
+ codex/create-dog-daycare-management-system-yeinmr
+        return self.conn.execute(
+            "SELECT * FROM pet_notes WHERE id = ?", (cur.lastrowid,)
+        ).fetchone()
+
+    def list_pet_notes(self, *, pet_id: int) -> list[dict]:
+        """Return behavioural and care notes for a pet."""
+
+        self.get_pet(pet_id)
+        return self.conn.execute(
+            """
+            SELECT pet_notes.*, users.name AS staff_name
+            FROM pet_notes
+            LEFT JOIN users ON users.id = pet_notes.created_by
+            WHERE pet_notes.pet_id = ?
+            ORDER BY pet_notes.created_at DESC
+            """,
+            (pet_id,),
+        ).fetchall()
+
         return self.conn.execute("SELECT * FROM pet_notes WHERE id = ?", (cur.lastrowid,)).fetchone()
+ main
 
     # ------------------------------------------------------------------
     # Services, packages, inventory
@@ -339,6 +442,22 @@ class DaycareSystem:
             raise ValidationError("Service not found")
         return row
 
+ codex/create-dog-daycare-management-system-yeinmr
+    def list_services(self, *, location_id: int | None = None) -> list[dict]:
+        """Return services available for a location."""
+
+        params: list[Any] = []
+        where = ""
+        if location_id is not None:
+            where = " WHERE location_id IS NULL OR location_id = ?"
+            params.append(location_id)
+        return self.conn.execute(
+            "SELECT * FROM services" + where + " ORDER BY name",
+            params,
+        ).fetchall()
+
+
+ main
     def create_daycare_package(
         self,
         *,
@@ -380,6 +499,22 @@ class DaycareSystem:
             raise ValidationError("Package not found")
         return row
 
+ codex/create-dog-daycare-management-system-yeinmr
+    def list_packages(self, *, location_id: int | None = None) -> list[dict]:
+        """Return daycare packages, optionally filtered by location."""
+
+        params: list[Any] = []
+        where = ""
+        if location_id is not None:
+            where = " WHERE location_id IS NULL OR location_id = ?"
+            params.append(location_id)
+        return self.conn.execute(
+            "SELECT * FROM daycare_packages" + where + " ORDER BY name",
+            params,
+        ).fetchall()
+
+
+ main
     def sell_package(
         self,
         *,
@@ -415,6 +550,25 @@ class DaycareSystem:
             raise ValidationError("Client package not found")
         return row
 
+ codex/create-dog-daycare-management-system-yeinmr
+    def list_client_packages(self, *, client_id: int) -> list[dict]:
+        """Return packages owned by a client."""
+
+        self.get_client(client_id)
+        return self.conn.execute(
+            """
+            SELECT client_packages.*, daycare_packages.name AS package_name,
+                   daycare_packages.total_credits
+            FROM client_packages
+            JOIN daycare_packages ON daycare_packages.id = client_packages.package_id
+            WHERE client_packages.client_id = ?
+            ORDER BY client_packages.purchase_date DESC
+            """,
+            (client_id,),
+        ).fetchall()
+
+
+ main
     def adjust_client_package(self, client_package_id: int, delta: int) -> dict:
         package = self.get_client_package(client_package_id)
         new_balance = package["remaining_credits"] + delta
@@ -773,6 +927,48 @@ class DaycareSystem:
         row = self.conn.execute("SELECT * FROM bookings WHERE id = ?", (booking_id,)).fetchone()
         if not row:
             raise ValidationError("Booking not found")
+ codex/create-dog-daycare-management-system-yeinmr
+        client = self.get_client(row["client_id"])
+        pets = self.conn.execute(
+            """
+            SELECT booking_pets.*, pets.name AS pet_name
+            FROM booking_pets
+            JOIN pets ON pets.id = booking_pets.pet_id
+            WHERE booking_pets.booking_id = ?
+            ORDER BY pets.name
+            """,
+            (booking_id,),
+        ).fetchall()
+        services = self.conn.execute(
+            """
+            SELECT booking_services.*, services.name AS service_name
+            FROM booking_services
+            JOIN services ON services.id = booking_services.service_id
+            WHERE booking_services.booking_id = ?
+            ORDER BY services.name
+            """,
+            (booking_id,),
+        ).fetchall()
+        invoice = self.conn.execute(
+            "SELECT * FROM invoices WHERE booking_id = ?", (booking_id,)
+        ).fetchone()
+        checkins = self.conn.execute(
+            """
+            SELECT checkins.*, booking_pets.pet_id AS pet_id, pets.name AS pet_name
+            FROM checkins
+            JOIN booking_pets ON booking_pets.id = checkins.booking_pet_id
+            JOIN pets ON pets.id = booking_pets.pet_id
+            WHERE booking_pets.booking_id = ?
+            ORDER BY checkins.check_in_time
+            """,
+            (booking_id,),
+        ).fetchall()
+        row["pets"] = pets
+        row["services"] = services
+        row["client"] = client
+        row["invoice"] = invoice
+        row["checkins"] = checkins
+
         pets = self.conn.execute(
             "SELECT * FROM booking_pets WHERE booking_id = ?", (booking_id,)
         ).fetchall()
@@ -781,6 +977,7 @@ class DaycareSystem:
         ).fetchall()
         row["pets"] = pets
         row["services"] = services
+ main
         return row
 
     def list_bookings(self, *, location_id: int, date: str) -> list[dict]:
@@ -797,6 +994,96 @@ class DaycareSystem:
         ).fetchall()
         return [self.get_booking(row["id"]) for row in rows]
 
+ codex/create-dog-daycare-management-system-yeinmr
+    def location_dashboard(self, *, location_id: int, date: str | None = None) -> dict:
+        """Return a snapshot summary for the dashboard view."""
+
+        location = self.get_location(location_id)
+        target_date = dt.date.fromisoformat(date) if date else dt.date.today()
+        bookings_today = self.list_bookings(
+            location_id=location_id, date=target_date.isoformat()
+        )
+        waitlist_rows = self.list_waitlist(
+            location_id=location_id, date=target_date.isoformat()
+        )
+        occupancy = sum(len(booking["pets"]) for booking in bookings_today)
+        waitlist: list[dict] = []
+        for entry in waitlist_rows:
+            client = self.get_client(entry["client_id"])
+            pet = self.get_pet(entry["pet_id"])
+            entry = dict(entry)
+            entry["client_name"] = f"{client['first_name']} {client['last_name']}"
+            entry["pet_name"] = pet["name"]
+            waitlist.append(entry)
+        outstanding = self.conn.execute(
+            """
+            SELECT COALESCE(SUM(invoices.balance_due), 0) AS total
+            FROM invoices
+            LEFT JOIN bookings ON bookings.id = invoices.booking_id
+            WHERE invoices.status != 'paid'
+              AND (bookings.location_id = ? OR bookings.location_id IS NULL)
+            """,
+            (location_id,),
+        ).fetchone()["total"]
+        new_clients = self.conn.execute(
+            """
+            SELECT COUNT(*) AS count
+            FROM clients
+            WHERE DATE(created_at) = ?
+            """,
+            (target_date.isoformat(),),
+        ).fetchone()["count"]
+        recent_messages = self.conn.execute(
+            """
+            SELECT messages.*, clients.first_name || ' ' || clients.last_name AS client_name
+            FROM messages
+            JOIN clients ON clients.id = messages.client_id
+            WHERE messages.created_at >= ?
+            ORDER BY messages.created_at DESC
+            LIMIT 5
+            """,
+            ((target_date - dt.timedelta(days=7)).isoformat(),),
+        ).fetchall()
+        return {
+            "location": location,
+            "date": target_date.isoformat(),
+            "bookings": bookings_today,
+            "waitlist": waitlist,
+            "occupancy": occupancy,
+            "capacity": location["capacity"],
+            "available": max(location["capacity"] - occupancy, 0),
+            "outstanding_balance": round(outstanding or 0, 2),
+            "new_clients_today": new_clients,
+            "recent_messages": recent_messages,
+        }
+
+    def list_bookings_for_client(
+        self,
+        *,
+        client_id: int,
+        upcoming_only: bool = True,
+        limit: int | None = None,
+    ) -> list[dict]:
+        """Return bookings for a specific client."""
+
+        self.get_client(client_id)
+        params: list[Any] = [client_id]
+        where = "WHERE client_id = ?"
+        if upcoming_only:
+            where += " AND end_time >= ?"
+            params.append(dt.datetime.now().isoformat())
+        order = " ORDER BY start_time"
+        if limit is not None:
+            order += " LIMIT ?"
+            params.append(limit)
+        rows = self.conn.execute(
+            f"SELECT * FROM bookings {where}{order}",
+            params,
+        ).fetchall()
+        return [self.get_booking(row["id"]) for row in rows]
+
+
+ main
     def check_in_pet(
         self,
         *,
@@ -920,6 +1207,24 @@ class DaycareSystem:
             "SELECT * FROM pet_activity_logs WHERE id = ?", (cur.lastrowid,)
         ).fetchone()
 
+ codex/create-dog-daycare-management-system-yeinmr
+    def list_activity_logs(self, *, pet_id: int) -> list[dict]:
+        """Return activity entries for a pet."""
+
+        self.get_pet(pet_id)
+        return self.conn.execute(
+            """
+            SELECT pet_activity_logs.*, users.name AS staff_name
+            FROM pet_activity_logs
+            LEFT JOIN users ON users.id = pet_activity_logs.logged_by
+            WHERE pet_activity_logs.pet_id = ?
+            ORDER BY pet_activity_logs.created_at DESC
+            """,
+            (pet_id,),
+        ).fetchall()
+
+
+ main
     # ------------------------------------------------------------------
     # Billing
     # ------------------------------------------------------------------
@@ -939,6 +1244,40 @@ class DaycareSystem:
         row["payments"] = payments
         return row
 
+ codex/create-dog-daycare-management-system-yeinmr
+    def list_invoices(
+        self,
+        *,
+        client_id: int | None = None,
+        status: Sequence[str] | None = None,
+    ) -> list[dict]:
+        """Return invoices optionally filtered by client or status."""
+
+        params: list[Any] = []
+        conditions: list[str] = []
+        if client_id is not None:
+            conditions.append("invoices.client_id = ?")
+            params.append(client_id)
+        if status:
+            placeholders = ",".join("?" for _ in status)
+            conditions.append(f"invoices.status IN ({placeholders})")
+            params.extend(status)
+        where = ""
+        if conditions:
+            where = " WHERE " + " AND ".join(conditions)
+        query = (
+            """
+            SELECT invoices.*, bookings.start_time, bookings.location_id
+            FROM invoices
+            LEFT JOIN bookings ON bookings.id = invoices.booking_id
+            {where}
+            ORDER BY issue_date DESC, invoices.id DESC
+            """.format(where=where)
+        )
+        return self.conn.execute(query, params).fetchall()
+
+
+ main
     def record_payment(
         self,
         *,
@@ -994,6 +1333,22 @@ class DaycareSystem:
             "SELECT * FROM notifications WHERE id = ?", (cur.lastrowid,)
         ).fetchone()
 
+ codex/create-dog-daycare-management-system-yeinmr
+    def list_notifications(self, *, client_id: int) -> list[dict]:
+        """Return notifications previously sent to a client."""
+
+        self.get_client(client_id)
+        return self.conn.execute(
+            """
+            SELECT * FROM notifications
+            WHERE client_id = ?
+            ORDER BY created_at DESC
+            """,
+            (client_id,),
+        ).fetchall()
+
+
+ main
     def log_message(
         self,
         *,
@@ -1012,7 +1367,28 @@ class DaycareSystem:
             (client_id, direction, channel, content, staff_user_id, related_booking_id),
         )
         self.conn.commit()
+ codex/create-dog-daycare-management-system-yeinmr
+        return self.conn.execute(
+            "SELECT * FROM messages WHERE id = ?", (cur.lastrowid,)
+        ).fetchone()
+
+    def list_messages(self, *, client_id: int) -> list[dict]:
+        """Return the two-way communication history for a client."""
+
+        self.get_client(client_id)
+        return self.conn.execute(
+            """
+            SELECT messages.*, users.name AS staff_name
+            FROM messages
+            LEFT JOIN users ON users.id = messages.staff_user_id
+            WHERE messages.client_id = ?
+            ORDER BY messages.created_at DESC
+            """,
+            (client_id,),
+        ).fetchall()
+
         return self.conn.execute("SELECT * FROM messages WHERE id = ?", (cur.lastrowid,)).fetchone()
+ main
 
     def create_document(
         self,
